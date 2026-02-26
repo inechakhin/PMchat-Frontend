@@ -1,7 +1,7 @@
 import reflex as rx
 
 from ..components.sidebar import sidebar
-from ..components.chat import chat_area
+from ..components.chat_area import chat_area
 from ..core.chat_state import ChatState
 
 def chat_page():

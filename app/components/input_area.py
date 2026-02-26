@@ -9,7 +9,7 @@ def input_area():
             placeholder="Введите сообщение...",
             value=ChatState.current_message,
             on_change=ChatState.set_current_message,
-            on_key_down=ChatState.send_message_on_key_down,
+            on_key_down=ChatState.handle_key_down,
             width="100%",
             is_disabled=ChatState.is_loading,
         ),
