@@ -1,5 +1,7 @@
 import httpx
+import json
 from typing import AsyncGenerator, List, Dict, Any, Optional
+
 from ..core.config import settings
 
 class ChatAPIClient:
@@ -58,14 +60,20 @@ class ChatAPIClient:
                         buffer = buffer[msg_end + 2 :]
 
                         event = None
-                        data = ""
+                        data_str = ""
                         for line in complete_msg.split("\n"):
                             line = line.strip()
                             if line.startswith("event: "):
                                 event = line[7:].strip()
                             elif line.startswith("data: "):
-                                data = line[6:]
+                                data_str = line[6:]
 
+                        if event and data_str:
+                            try:
+                                data = json.loads(data_str)
+                            except json.JSONDecodeError:
+                                data = {}  # fallback
+                        
                         yield (event, data)
                         
                         if event == "finish":

@@ -37,11 +37,9 @@ def message_component(message: Message):
                     ),
                     width="100%",
                 ),
-                rx.text(
+                rx.markdown(
                     message.content,
-                    white_space="pre-wrap",
                     width="100%",
-                    size="2",
                 ),
                 rx.moment(message.created_at, format="HH:mm"),
                 align_items="start",

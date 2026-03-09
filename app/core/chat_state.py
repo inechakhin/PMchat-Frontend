@@ -144,18 +144,21 @@ class ChatState(rx.State):
         try:
             async for event, data in api_client.stream_chat(self.current_chat_id, text_to_send):
                 if event == "message":
-                    self.messages[-1].content += data
+                    token = data.get("token", "")
+                    self.messages[-1].content += token
                 elif event == "source":
-                    title = data
+                    title = data.get("title", "")
                     if not any(att.title == title for att in self.messages[-1].attachments):
                         self.messages[-1].attachments.append(Attachment(title=title))
                 elif event == "chat-title":
+                    title = data.get("title", "")
                     for chat in self.chats:
                         if chat.id == self.current_chat_id:
-                            chat.title = data
+                            chat.title = title
                             break
                 elif event == "error":
-                    self.messages[-1].content += f"\n\n[Ошибка: {data}]"
+                    error_msg = data.get("message", str(data))
+                    self.messages[-1].content += f"\n\n[Ошибка: {error_msg}]"
                 elif event == "finish":
                     break
                 yield
