@@ -14,7 +14,7 @@ class MessageState(rx.State):
 
 def message_component(message: Message):
     return rx.vstack(
-        # Основной блок сообщения (как и раньше)
+        # Основной блок сообщения
         rx.hstack(
             rx.vstack(
                 rx.hstack(
@@ -40,6 +40,7 @@ def message_component(message: Message):
                 rx.markdown(
                     message.content,
                     width="100%",
+                    style={"word_break": "break-word", "overflow_wrap": "break-word"},
                 ),
                 rx.moment(message.created_at, format="HH:mm"),
                 align_items="start",
@@ -57,6 +58,7 @@ def message_component(message: Message):
                 "80%",
                 "100%"
             ),
+            style={"max_width": "100%", "word_break": "break-word"},
             margin_left=rx.cond(
                 message.role == "user",
                 "auto",
