@@ -32,6 +32,12 @@ class ChatState(rx.State):
     # Опционально: поле для ошибок
     error: Optional[str] = None
 
+    # Для диалога переименования
+    rename_dialog_open: bool = False
+    rename_chat_id: str = ""
+    rename_current_title: str = ""
+    new_chat_title: str = ""
+
     def set_current_message(self, value: str):
         """Обновить текущее сообщение при вводе."""
         self.current_message = value
@@ -39,7 +45,11 @@ class ChatState(rx.State):
             self.drafts[self.current_chat_id] = value
         else:
             self._draft_new_chat = value
-        
+     
+    def set_new_chat_title(self, value: str):
+        """Обновить текущее название чата при вводе."""
+        self.new_chat_title = value
+       
     def reset_to_new_chat(self):
         """Сбросить текущий чат, не создавая нового на сервере."""
         self.current_chat_id = None
@@ -171,14 +181,51 @@ class ChatState(rx.State):
             await self.load_chats()
             yield
 
+    def open_rename_dialog(self, chat_id: str, current_title: str):
+        """Открыть диалог переименования с предзаполненным названием."""
+        self.rename_dialog_open = True
+        self.rename_chat_id = chat_id
+        self.rename_current_title = current_title
+        self.new_chat_title = current_title
+        return rx.call_script("setTimeout(() => document.getElementById('rename-input')?.focus(), 100)")
+
+    def close_rename_dialog(self):
+        """Закрыть диалог и сбросить данные."""
+        self.rename_dialog_open = False
+        self.rename_chat_id = ""
+        self.rename_current_title = ""
+        self.new_chat_title = ""
+
+    async def rename_chat(self):
+        """Отправить запрос на переименование и обновить список."""
+        if not self.new_chat_title.strip():
+            # Можно показать ошибку, но пока просто закрываем
+            self.close_rename_dialog()
+            return
+        try:
+            # Отправляем запрос на сервер
+            updated_chat = await api_client.rename_chat(
+                self.rename_chat_id,
+                self.new_chat_title.strip()
+            )
+            # Обновляем название в локальном списке
+            for chat in self.chats:
+                if chat.id == self.rename_chat_id:
+                    chat.title = updated_chat["title"]
+                    break
+        except Exception as e:
+            self.error = f"Ошибка переименования: {e}"
+        finally:
+            self.close_rename_dialog()
+            await self.load_chats()
+    
     async def delete_chat(self, chat_id: str):
         """Удалить конкретный чат."""
         try:
             success = await api_client.delete_chat(chat_id)
             if success:
                 if self.current_chat_id == chat_id:
-                    self.current_chat_id = None
-                    self.messages = []
+                    self.reset_to_new_chat()
                 self.chats = [chat for chat in self.chats if chat.id != chat_id]
         except Exception as e:
             self.error = f"Ошибка удаления чата: {e}"
@@ -200,3 +247,10 @@ class ChatState(rx.State):
                 yield
         else:
             yield
+    
+    async def handle_rename_key_down(self, event: str):
+        """Enter в поле переименования."""
+        if event == "Enter":
+            return await self.rename_chat()
+        elif event == "Escape":
+            return self.close_rename_dialog()

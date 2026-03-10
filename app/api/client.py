@@ -86,6 +86,14 @@ class ChatAPIClient:
         except Exception as e:
             raise Exception(f"Streaming error: {str(e)}")
 
+    async def rename_chat(self, chat_id: str, title: str) -> Dict[str, Any]:
+        response = await self.client.patch(
+            f"{self.backend_base_url}/internal/api/chats/{chat_id}",
+            json={"title": title}
+        )
+        response.raise_for_status()
+        return response.json()
+
     async def delete_chat(self, chat_id: str) -> bool:
         response = await self.client.delete(
             f"{self.backend_base_url}/internal/api/chats/{chat_id}"
