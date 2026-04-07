@@ -8,6 +8,7 @@ interface ChatState {
   isLoading: boolean;
   setChats: (chats: ChatPreview[]) => void;
   setCurrentChat: (chatId: string | null) => void;
+  setChatLocalTitle: (chatId: string, title: string) => void;
   fetchChats: () => Promise<void>;
   createChat: () => Promise<Chat>;
   deleteChat: (chatId: string) => Promise<void>;
@@ -21,7 +22,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isLoading: false,
 
   setChats: (chats) => set({ chats }),
+  
   setCurrentChat: (chatId) => set({ currentChatId: chatId }),
+  
+  setChatLocalTitle: (chatId, title) => {
+    const newChats = get().chats.map((c) =>
+      c.id === chatId ? { ...c, title: title } : c
+    );
+    set({ chats: newChats });
+  },
 
   fetchChats: async () => {
     set({ isLoading: true });
@@ -67,10 +76,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   renameChat: async (chatId, title) => {
     try {
       const updated = await chatApi.renameChat(chatId, title);
-      const newChats = get().chats.map((c) =>
-        c.id === chatId ? { ...c, title: updated.title } : c
-      );
-      set({ chats: newChats });
+      get().setChatLocalTitle(chatId, updated.title);
     } catch (error) {
       throw error;
     }

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { User } from '@/types/types';
+import { useChatStore } from './chat-store';
+import { useMessageStore } from './message-store';
 import * as authApi from '@/lib/auth-api';
 import * as userApi from '@/lib/user-api';
 
@@ -23,10 +25,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       const user = await userApi.getProfile();
-      set({ user, isLoading: false });
-    } catch (error) {
-      set({ user: null, isLoading: false });
-      throw error;
+      set({ user });
+    } catch {
+      set({ user: null });
+    } finally {
+      set({ isLoading: false });
     }
   },
 
@@ -46,6 +49,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await authApi.logout();
       set({ user: null, isLoading: false });
+      useChatStore.getState().setChats([])
+      useMessageStore.getState().setAllChatMessages({})
     } catch (error) {
       set({ isLoading: false });
       throw error;

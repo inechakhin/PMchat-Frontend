@@ -8,16 +8,19 @@ export const useChat = (chatId: string) => {
   const {
     messagesByChatId,
     isLoadingMessages,
+    isStreamingByChatId,
     setMessages,
     addMessage,
     appendToken,
     setLoading,
+    setStreaming,
   } = useMessageStore();
 
   const { currentChatId, setCurrentChat } = useChatStore();
 
   const messages = messagesByChatId[chatId] || [];
   const isLoading = isLoadingMessages[chatId] || false;
+  const isStreaming = isStreamingByChatId[chatId] || false;
 
   // AbortController для отмены текущего стрима
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -47,13 +50,20 @@ export const useChat = (chatId: string) => {
     }
   }, [chatId, currentChatId, setCurrentChat]);
 
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim()) return;
+      if (isStreaming) return;
 
       // 1. Добавляем сообщение пользователя в store
       const tempUserMessage: any = {
-        id: `temp-${Date.now()}`,
+        id: crypto.randomUUID(),
         sender_type: 'user',
         text,
         attachments: [],
@@ -69,6 +79,7 @@ export const useChat = (chatId: string) => {
       abortControllerRef.current = controller;
 
       // 3. Запускаем SSE-стрим
+      setStreaming(chatId, true);
       try {
         await chatApi.sendMessage(chatId, text, (event: StreamEvent) => {
           switch (event.type) {
@@ -82,10 +93,11 @@ export const useChat = (chatId: string) => {
               break;
             case 'chat-title':
               // Обновляем название чата в store
-              const { renameChat } = useChatStore.getState();
-              renameChat(chatId, event.title);
+              const { setChatLocalTitle } = useChatStore.getState();
+              setChatLocalTitle(chatId, event.title);
               break;
             case 'error':
+              setStreaming(chatId, false);
               console.error('Stream error:', event.message);
               // Добавим сообщение об ошибке в чат
               const errorMsg: any = {
@@ -99,6 +111,7 @@ export const useChat = (chatId: string) => {
               break;
             case 'finish':
               // Стрим завершён
+              setStreaming(chatId, false);
               break;
           }
         }, controller.signal);
@@ -115,15 +128,17 @@ export const useChat = (chatId: string) => {
           addMessage(chatId, errorMsg);
         }
       } finally {
+        setStreaming(chatId, false);
         abortControllerRef.current = null;
       }
     },
-    [chatId, addMessage, appendToken]
+    [chatId, addMessage, appendToken, setStreaming]
   );
 
   return {
     messages,
     isLoading,
+    isStreaming,
     sendMessage,
     reloadMessages: loadMessages,
   };
