@@ -1,10 +1,8 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export default function ForbiddenPage() {
-  const router = useRouter()
-
   return (
     <div className="flex flex-1 items-center justify-center px-4">
       <div className="text-center max-w-md">
@@ -19,19 +17,12 @@ export default function ForbiddenPage() {
         </p>
 
         <div className="flex gap-3 justify-center">
-          <button
-            onClick={() => router.push("/")}
+          <Link
+            href="/"
             className="px-4 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black"
           >
             На главную
-          </button>
-
-          <button
-            onClick={() => router.back()}
-            className="px-4 py-2 rounded-lg border"
-          >
-            Назад
-          </button>
+          </Link>
         </div>
       </div>
     </div>
