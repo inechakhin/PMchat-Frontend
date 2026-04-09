@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { RegisterForm } from "@/components/forms/register-form"
+import { RegisterForm } from "@/components/auth/register-form"
 
 export default function RegisterPage() {
   return (
@@ -10,10 +10,10 @@ export default function RegisterPage() {
 
       <p className="text-center text-sm text-gray-600 dark:text-gray-400">
         Уже есть аккаунт?{" "}
-        <Link href="/auth/login" className="font-medium text-blue-600 hover:underline">
+        <Link href="/login" className="font-medium text-blue-600 hover:underline">
           Войти
         </Link>
       </p>
     </div>
-  )
+  );
 }
