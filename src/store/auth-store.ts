@@ -1,69 +1,19 @@
 import { create } from 'zustand';
 import { User } from '@/types/types';
-import { useChatStore } from './chat-store';
-import { useMessageStore } from './message-store';
-import * as authApi from '@/lib/auth-api';
-import * as userApi from '@/lib/user-api';
 
 interface AuthState {
   user: User | null;
   isLoading: boolean;
   setUser: (user: User | null) => void;
-  fetchUser: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  refresh: () => Promise<void>;
+  setLoading: (loading: boolean) => void;
+  reset: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoading: false,
 
   setUser: (user) => set({ user }),
-
-  fetchUser: async () => {
-    set({ isLoading: true });
-    try {
-      const user = await userApi.getProfile();
-      set({ user });
-    } catch {
-      set({ user: null });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  login: async (email, password) => {
-    set({ isLoading: true });
-    try {
-      await authApi.signin({ email, password });
-      await get().fetchUser();
-    } catch (error) {
-      set({ isLoading: false });
-      throw error;
-    }
-  },
-
-  logout: async () => {
-    set({ isLoading: true });
-    try {
-      await authApi.logout();
-      set({ user: null, isLoading: false });
-      useChatStore.getState().setChats([])
-      useMessageStore.getState().setAllChatMessages({})
-    } catch (error) {
-      set({ isLoading: false });
-      throw error;
-    }
-  },
-
-  refresh: async () => {
-    try {
-      await authApi.refresh();
-      await get().fetchUser();
-    } catch (error) {
-      set({ user: null });
-      throw error;
-    }
-  },
+  setLoading: (loading) => set({ isLoading: loading }),
+  reset: () => set({ user: null, isLoading: false }),
 }));

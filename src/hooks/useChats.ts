@@ -1,22 +1,104 @@
+import { useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useChatStore } from '@/store/chat-store';
-import { useEffect } from 'react';
+import { useMessageStore } from '@/store/message-store';
+import * as chatApi from '@/lib/chat-api';
 
 export const useChats = () => {
+  const router = useRouter();
   const {
     chats,
     currentChatId,
     isLoading,
-    fetchChats,
-    createChat,
-    deleteChat,
-    renameChat,
-    deleteAllChats,
+    setChats,
     setCurrentChat,
+    setLoading,
+    addChat,
+    removeChat,
+    updateChatTitle,
+    reset,
   } = useChatStore();
 
-  useEffect(() => {
-    fetchChats();
-  }, [fetchChats]);
+  const clearMessages = useMessageStore((s) => s.clearMessages);
+
+  const fetchChats = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await chatApi.getChats();
+      setChats(data);
+    } catch (error) {
+      console.error('Failed to fetch chats', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [setChats, setLoading]);
+
+  const createChat = useCallback(async () => {
+    setLoading(true);
+    try {
+      const newChat = await chatApi.createChat();
+      addChat(newChat);
+      router.push(`/chat/${newChat.id}`);
+      return newChat;
+    } catch (error) {
+      setLoading(false);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, addChat, router]);
+
+  const deleteChat = useCallback(
+    async (chatId: string) => {
+      setLoading(true);
+      try {
+        await chatApi.deleteChat(chatId);
+        removeChat(chatId);
+        clearMessages(chatId);
+        if (currentChatId === chatId) {
+          const remaining = chats.filter((c) => c.id !== chatId);
+          if (remaining.length > 0) {
+            router.push(`/chat/${remaining[0].id}`);
+          } else {
+            router.push('/');
+          }
+        }
+      } catch (error) {
+        setLoading(false);
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setLoading, removeChat, clearMessages, currentChatId, chats, router]
+  );
+
+  const renameChat = useCallback(
+    async (chatId: string, title: string) => {
+      try {
+        const updated = await chatApi.renameChat(chatId, title);
+        updateChatTitle(chatId, updated.title);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [updateChatTitle]
+  );
+
+  const deleteAllChats = useCallback(async () => {
+    setLoading(true);
+    try {
+      await chatApi.deleteAllChats();
+      reset();
+      useMessageStore.getState().reset();
+      router.push('/');
+    } catch (error) {
+      setLoading(false);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, reset, router]);
 
   return {
     chats,
