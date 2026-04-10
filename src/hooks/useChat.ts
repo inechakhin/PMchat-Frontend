@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation'
-import { useMessageStore } from '@/store/message-store';
-import { useChatStore } from '@/store/chat-store';
-import * as chatApi from '@/lib/chat-api';
-import { StreamEvent } from '@/types/types';
+import { useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useMessageStore } from "@/store/message-store";
+import { useChatStore } from "@/store/chat-store";
+import * as chatApi from "@/lib/chat-api";
+import { StreamEvent } from "@/types/types";
+import { useStreamController } from "./useStreamController";
 
 export const useChat = (chatId: string | null) => {
   const router = useRouter();
@@ -20,14 +21,20 @@ export const useChat = (chatId: string | null) => {
     finishStreamingMessage,
   } = useMessageStore();
 
-  const { currentChatId, setCurrentChat, addChat, updateChatTitle } = useChatStore();
+  const {
+    currentChatId,
+    setCurrentChat,
+    addChat,
+    updateChatTitle,
+  } = useChatStore();
+
+  const { abort, create } = useStreamController();
+  const loadingRef = useRef(false);
+  const typingTitleRef = useRef<string | null>(null);
 
   const messages = chatId ? messagesByChatId[chatId] || [] : [];
   const isLoading = chatId ? isLoadingMessages[chatId] || false : false;
   const isStreaming = chatId ? isStreamingByChatId[chatId] || false : false;
-
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const loadingRef = useRef(false);
 
   const loadMessages = useCallback(async () => {
     if (!chatId || loadingRef.current) return;
@@ -37,7 +44,7 @@ export const useChat = (chatId: string | null) => {
       const msgs = await chatApi.getMessages(chatId);
       setMessages(chatId, msgs);
     } catch (error) {
-      console.error('Failed to load messages', error);
+      console.error("Failed to load messages", error);
     } finally {
       setLoading(chatId, false);
       loadingRef.current = false;
@@ -45,22 +52,12 @@ export const useChat = (chatId: string | null) => {
   }, [chatId, setLoading, setMessages]);
 
   useEffect(() => {
-    if (chatId) {
-      loadMessages();
-    }
+    if (chatId) loadMessages();
   }, [chatId, loadMessages]);
 
   useEffect(() => {
-    if (currentChatId !== chatId) {
-      setCurrentChat(chatId);
-    }
+    if (currentChatId !== chatId) setCurrentChat(chatId);
   }, [chatId, currentChatId, setCurrentChat]);
-
-  useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, []);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -73,75 +70,75 @@ export const useChat = (chatId: string | null) => {
           addChat(newChat);
           effectiveChatId = newChat.id;
           router.replace(`/chat/${effectiveChatId}`);
-          return;
         } catch (error) {
-          console.error('Failed to create chat', error);
+          console.error("Failed to create chat", error);
           return;
         }
       }
-      
+
+      // Добавляем сообщение пользователя
       const userMessage = {
         id: crypto.randomUUID(),
-        sender_type: 'user' as const,
+        sender_type: "user" as const,
         text,
         attachments: [],
         created_at: new Date().toISOString(),
       };
       addMessage(effectiveChatId, userMessage);
 
-      // Отменяем предыдущий стрим
-      abortControllerRef.current?.abort();
-      setStreaming(effectiveChatId, false);
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
+      // Начинаем стрим ассистента
       startStreamingMessage(effectiveChatId);
       setStreaming(effectiveChatId, true);
+      typingTitleRef.current = null; // сбрасываем перед новым стримом
+
+      const controller = create();
+      if (!controller) return;
+
       try {
         await chatApi.sendMessage(
           effectiveChatId,
           text,
           (event: StreamEvent) => {
             switch (event.type) {
-              case 'message':
+              case "message":
                 appendTokenToStreamingMessage(effectiveChatId, event.token);
                 break;
-              case 'source':
-                // Обработка источника при необходимости
+              case "source":
+                useMessageStore.getState().addAttachmentToStreamingMessage(effectiveChatId, event.title);
                 break;
-              case 'chat-title':
-                updateChatTitle(effectiveChatId, event.title);
+              case "chat-title":
+                // Обновляем заголовок только один раз за стрим
+                if (typingTitleRef.current === null) {
+                  typingTitleRef.current = event.title;
+                  updateChatTitle(effectiveChatId, event.title);
+                }
                 break;
-              case 'error':
-                addMessage(effectiveChatId, {
-                  id: crypto.randomUUID(),
-                  sender_type: 'assistant',
+              case "error":
+                finishStreamingMessage(effectiveChatId);
+                setStreaming(effectiveChatId, false);
+                useMessageStore.getState().updateLastAssistantMessage(effectiveChatId, (msg) => ({
+                  ...msg,
                   text: `❌ Ошибка: ${event.message}`,
-                  attachments: [],
-                  created_at: new Date().toISOString(),
-                });
+                }));
                 break;
-              case 'finish':
+              default:
                 break;
             }
           },
           controller.signal
         );
       } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          console.error('Send message failed', error);
-          addMessage(effectiveChatId, {
-            id: crypto.randomUUID(),
-            sender_type: 'assistant',
+        if (error.name !== "AbortError") {
+          console.error("Send message failed", error);
+          useMessageStore.getState().updateLastAssistantMessage(effectiveChatId, (msg) => ({
+            ...msg,
             text: `❌ Не удалось отправить сообщение`,
-            attachments: [],
-            created_at: new Date().toISOString(),
-          });
+          }));
         }
       } finally {
         finishStreamingMessage(effectiveChatId);
         setStreaming(effectiveChatId, false);
-        abortControllerRef.current = null;
+        abort();
       }
     },
     [
@@ -155,6 +152,8 @@ export const useChat = (chatId: string | null) => {
       updateChatTitle,
       addChat,
       router,
+      abort,
+      create,
     ]
   );
 
@@ -164,5 +163,6 @@ export const useChat = (chatId: string | null) => {
     isStreaming,
     sendMessage,
     reloadMessages: loadMessages,
+    abortStream: abort,
   };
 };

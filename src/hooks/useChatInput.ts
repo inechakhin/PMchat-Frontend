@@ -2,9 +2,7 @@ import { useInputStore } from '@/store/input-store';
 import { useCallback } from 'react';
 
 export const useChatInput = (chatId: string) => {
-  const drafts = useInputStore((state) => state.drafts);
-  const setDraft = useInputStore((state) => state.setDraft);
-  const clearDraft = useInputStore((state) => state.clearDraft);
+  const { drafts, setDraft, clearDraft} = useInputStore();
 
   const text = drafts[chatId] || '';
 

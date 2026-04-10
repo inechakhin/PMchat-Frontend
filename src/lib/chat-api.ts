@@ -34,53 +34,87 @@ export async function deleteAllChats(): Promise<void> {
   await apiClient.delete("/api/chats/all")
 }
 
+const safeJson = (raw: string) => {
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+const parseSseBlock = (chunk: string) => {
+  const lines = chunk.split('\n')
+  const eventLine = lines.find(l => l.startsWith('event:'))
+  const eventName = eventLine?.replace('event:', '').trim() ?? 'message'
+
+  const dataLines = lines.filter(l => l.startsWith('data:'))
+  const rawData = dataLines.map(l => l.replace('data:', '').trim()).join('\n')
+
+  return { eventName, rawData }
+}
+
 export async function sendMessage(
   chatId: string,
   text: string,
   onEvent: (event: StreamEvent) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onError?: (error: Error) => void
 ) {
-  const response = await fetch(`/api/chats/${chatId}/stream`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "text/event-stream",
-    },
-    body: JSON.stringify({ text }),
-    signal,
-  })
+  try {
+    const response = await fetch(`/api/chats/${chatId}/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      },
+      body: JSON.stringify({ text }),
+      signal,
+    })
 
-  if (!response.ok || !response.body) {
-    onEvent({ type: "error", message: "Stream error" })
-    return
-  }
+    if (!response.ok) {
+      let errorMessage = 'Stream error'
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData?.detail || errorMessage
+      } catch {
+        errorMessage = (await response.text()) || errorMessage
+      }
+      onError?.(new Error(errorMessage))
+      return
+    }
 
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ""
+    if (!response.body) {
+      onError?.(new Error('Response body is null'))
+      return
+    }
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
 
-    buffer += decoder.decode(value, { stream: true })
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
 
-    let boundary
-    while ((boundary = buffer.indexOf("\n\n")) !== -1) {
-      const chunk = buffer.slice(0, boundary)
-      buffer = buffer.slice(boundary + 2)
+      buffer += decoder.decode(value, { stream: true })
 
-      const eventLine = chunk.split("\n").find(l => l.startsWith("event:"))
-      const dataLine = chunk.split("\n").find(l => l.startsWith("data:"))
+      let boundary: number
+      while ((boundary = buffer.indexOf('\n\n')) !== -1) {
+        const chunk = buffer.slice(0, boundary)
+        buffer = buffer.slice(boundary + 2)
 
-      const event = eventLine?.replace("event:", "").trim()
-      const raw = dataLine?.replace("data:", "").trim()
+        if (!chunk.trim()) continue
 
-      if (!event || !raw) continue
-
-      const data = JSON.parse(raw)
-
-      onEvent({ type: event as any, ...data })
+        const { eventName, rawData } = parseSseBlock(chunk)
+        const payload = safeJson(rawData)
+        onEvent({ type: eventName as any, ...payload })
+      }
+    }
+  } catch (e) {
+    if (!signal?.aborted) {
+      onError?.(e instanceof Error ? e : new Error('Failed to start stream'))
     }
   }
 }

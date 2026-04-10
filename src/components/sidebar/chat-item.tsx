@@ -6,6 +6,7 @@ import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { RenameChatDialog } from "./dialogs/rename-chat-dialog";
 import { DeleteChatDialog } from "./dialogs/delete-chat-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
@@ -31,7 +32,7 @@ export function ChatItem({ chat }: ChatItemProps) {
   return (
     <>
       <div
-        className={`group relative flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${isActive ? "bg-gray-800" : "hover:bg-gray-800/50"
+        className={`group relative flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${isActive ? "bg-gray-700" : "hover:bg-gray-700/50"
           }`}
         onClick={() => router.push(`/chat/${chat.id}`)}
       >
@@ -40,32 +41,38 @@ export function ChatItem({ chat }: ChatItemProps) {
         </div>
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>
           <PopoverTrigger asChild>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
               onClick={(e) => e.stopPropagation()}
-              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-700 transition"
             >
-              <MoreHorizontal size={14} />
-            </button>
+               <MoreHorizontal size={14} />
+            </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-36 p-1" align="end">
-            <button
-              onClick={() => {
+          <PopoverContent className="w-38 p-1" align="end">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2 px-2"
+              onClick={(e) => {
+                e.stopPropagation();
                 setMenuOpen(false);
                 setRenameOpen(true);
               }}
-              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-gray-800"
             >
               <Pencil size={14} /> Переименовать
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              className="w-full justify-start gap-2 px-2"
               onClick={() => {
                 setMenuOpen(false);
                 setDeleteOpen(true);
-              }}
-              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-red-900/50 text-red-400"
-            >
+              }}>
               <Trash2 size={14} /> Удалить
-            </button>
+            </Button>
           </PopoverContent>
         </Popover>
       </div>

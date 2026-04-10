@@ -37,13 +37,20 @@ export function ChatInput({ chatId, onSendMessage, isStreaming }: ChatInputProps
   };
 
   const handleSubmit = async () => {
-    if (!text.trim() || isStreaming) return;
-    await onSendMessage(text);
-    clear();
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-  };
+  if (!text.trim() || isStreaming) return;
+
+  const messageText = text;
+  clear();
+  if (textareaRef.current) {
+    textareaRef.current.style.height = "auto";
+  }
+
+  try {
+    await onSendMessage(messageText);
+  } catch (error) {
+    setText(messageText);
+  }
+};
 
   return (
     <div className="border-t border-gray-800 bg-gray-900/50 p-3">

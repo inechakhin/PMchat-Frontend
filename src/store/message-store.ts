@@ -14,7 +14,9 @@ interface MessageState {
   setStreaming: (chatId: string, isStreaming: boolean) => void;
   startStreamingMessage: (chatId: string) => string;
   appendTokenToStreamingMessage: (chatId: string, token: string) => void;
+  addAttachmentToStreamingMessage: (chatId: string, title: string) => void;
   finishStreamingMessage: (chatId: string) => void;
+  updateLastAssistantMessage: (chatId: string, updater: (msg: Message) => Message) => void;
   reset: () => void;
 }
 
@@ -93,11 +95,46 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
       const messages = state.messagesByChatId[chatId] || [];
       const lastIndex = messages.length - 1;
+      const lastMessage = messages[lastIndex];
+      if (lastMessage.id !== messageId || lastMessage.sender_type !== 'assistant') return state;
+      
+      const updatedMessage = {
+        ...lastMessage,
+        text: lastMessage.text + token,
+      }
+
       const updatedMessages = [...messages];
-      updatedMessages[lastIndex] = {
-        ...updatedMessages[lastIndex],
-        text: updatedMessages[lastIndex].text + token,
+      updatedMessages[lastIndex] = updatedMessage;
+
+      return {
+        messagesByChatId: {
+          ...state.messagesByChatId,
+          [chatId]: updatedMessages,
+        },
       };
+    });
+  },
+
+  addAttachmentToStreamingMessage: (chatId, title) => {
+    set((state) => {
+      const messageId = state.streamingMessageIdByChatId[chatId];
+      if (!messageId) return state;
+
+      const messages = state.messagesByChatId[chatId] || [];
+      const lastIndex = messages.length - 1;
+      const lastMessage = messages[lastIndex];
+      if (lastMessage.id !== messageId || lastMessage.sender_type !== 'assistant') return state;
+
+      const existingTitles = new Set(lastMessage.attachments.map((a) => a.title));
+      if (existingTitles.has(title)) return state;
+
+      const updatedMessage = {
+        ...lastMessage,
+        attachments: [...lastMessage.attachments, { title }],
+      };
+
+      const updatedMessages = [...messages];
+      updatedMessages[lastIndex] = updatedMessage;
 
       return {
         messagesByChatId: {
@@ -116,6 +153,22 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       },
     }));
   },
+
+  updateLastAssistantMessage: (chatId, updater) =>
+    set((state) => {
+      const msgs = state.messagesByChatId[chatId] || [];
+      if (msgs.length === 0) return state;
+      const last = msgs[msgs.length - 1];
+      if (last.sender_type !== "assistant") return state;
+      const updated = [...msgs];
+      updated[updated.length - 1] = updater(last);
+      return {
+        messagesByChatId: {
+          ...state.messagesByChatId,
+          [chatId]: updated,
+        },
+      };
+    }),
 
   reset: () =>
     set({
