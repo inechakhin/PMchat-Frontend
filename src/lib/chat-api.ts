@@ -61,7 +61,7 @@ export async function sendMessage(
   onError?: (error: Error) => void
 ) {
   try {
-    const response = await fetch(`/api/chats/${chatId}/stream`, {
+    const getFetchConfig = (): RequestInit => ({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -71,7 +71,20 @@ export async function sendMessage(
       },
       body: JSON.stringify({ text }),
       signal,
+      credentials: 'include',
     })
+
+    let response = await fetch(`/api/chats/${chatId}/stream`, getFetchConfig())
+
+    if (response.status === 401) {
+      try {
+        await apiClient.post("/api/auth/refresh") 
+        response = await fetch(`/api/chats/${chatId}/stream`, getFetchConfig())
+      } catch (refreshError) {
+        onError?.(new Error('Сессия истекла. Пожалуйста, авторизуйтесь заново.'))
+        return
+      }
+    }
 
     if (!response.ok) {
       let errorMessage = 'Stream error'

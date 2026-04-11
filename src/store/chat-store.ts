@@ -11,6 +11,7 @@ interface ChatState {
   updateChatTitle: (chatId: string, title: string) => void;
   addChat: (chat: Chat | ChatPreview) => void;
   removeChat: (chatId: string) => void;
+  bumpChat: (chatId: string) => void;
   reset: () => void;
 }
 
@@ -22,21 +23,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setChats: (chats) => set({ chats }),
   setCurrentChat: (chatId) => set({ currentChatId: chatId }),
   setLoading: (loading) => set({ isLoading: loading }),
-  
+
   updateChatTitle: (chatId, title) => {
     const newChats = get().chats.map((c) =>
       c.id === chatId ? { ...c, title } : c
     );
     set({ chats: newChats });
   },
-  
+
   addChat: (chat) => {
     set((state) => ({
       chats: [chat, ...state.chats],
       currentChatId: chat.id,
     }));
   },
-  
+
   removeChat: (chatId) => {
     set((state) => {
       const newChats = state.chats.filter((c) => c.id !== chatId);
@@ -44,6 +45,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return { chats: newChats, currentChatId: newCurrentId };
     });
   },
-  
+
+  bumpChat: (chatId) => {
+    set((state) => ({
+      chats: state.chats.map(chat =>
+        chat.id === chatId
+          ? { ...chat, updated_at: new Date().toISOString() }
+          : chat
+      )
+    }))
+  },
+
   reset: () => set({ chats: [], currentChatId: null, isLoading: false }),
 }));

@@ -10,11 +10,11 @@ interface MessageState {
 
   setAllChatMessages: (messagesByChatId: Record<string, Message[]>) => void;
   setMessages: (chatId: string, messages: Message[]) => void;
-  addMessage: (chatId: string, message: Message) => void;
+  addUserMessage: (chatId: string, text: string) => void;
   clearMessages: (chatId: string) => void;
   setLoading: (chatId: string, isLoading: boolean) => void;
   setStreaming: (chatId: string, isStreaming: boolean) => void;
-  startStreamingMessage: (chatId: string) => string;
+  startStreamingMessage: (chatId: string) => void;
   appendTokenToStreamingMessage: (chatId: string, token: string) => void;
   addAttachmentToStreamingMessage: (chatId: string, title: string) => void;
   finishStreamingMessage: (chatId: string) => void;
@@ -40,13 +40,19 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       messagesByChatId: { ...state.messagesByChatId, [chatId]: messages },
     })),
 
-  addMessage: (chatId, message) =>
+  addUserMessage: (chatId, text) =>
     set((state) => {
-      const current = state.messagesByChatId[chatId] || [];
+      const newMessage = {
+        id: crypto.randomUUID(),
+        sender_type: 'user' as const,
+        text: text,
+        attachments: [],
+        created_at: new Date().toISOString(),
+      };
       return {
         messagesByChatId: {
           ...state.messagesByChatId,
-          [chatId]: [...current, message],
+          [chatId]: [...(state.messagesByChatId[chatId] || []), newMessage],
         },
       };
     }),
@@ -80,10 +86,10 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       },
     })),
 
-  startStreamingMessage: (chatId) => {
-    const messageId = crypto.randomUUID();
+  startStreamingMessage: (chatId) => 
     set((state) => {
       if (state.streamingMessageIdByChatId[chatId]) return state;
+      const messageId = crypto.randomUUID();
       const newMessage = {
         id: messageId,
         sender_type: 'assistant' as const,
@@ -101,9 +107,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
           [chatId]: messageId,
         },
       };
-    });
-    return messageId;
-  },
+    }),
 
   appendTokenToStreamingMessage: (chatId, token) => {
     set((state) => {

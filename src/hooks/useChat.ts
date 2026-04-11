@@ -12,13 +12,14 @@ export const useChat = (chatId: string | null) => {
     isLoadingMessages,
     isStreamingByChatId,
     setMessages,
-    addMessage,
+    addUserMessage,
     setLoading,
     setStreaming,
     startStreamingMessage,
     appendTokenToStreamingMessage,
     addAttachmentToStreamingMessage,
     finishStreamingMessage,
+    updateLastAssistantMessage,
     createStreamController,
     abortStreamController,
     removeStreamController,
@@ -29,6 +30,7 @@ export const useChat = (chatId: string | null) => {
     setCurrentChat,
     addChat,
     updateChatTitle,
+    bumpChat,
   } = useChatStore();
 
   const loadingRef = useRef(false);
@@ -79,20 +81,12 @@ export const useChat = (chatId: string | null) => {
         }
       }
 
-      // Добавляем сообщение пользователя
-      const userMessage = {
-        id: crypto.randomUUID(),
-        sender_type: "user" as const,
-        text,
-        attachments: [],
-        created_at: new Date().toISOString(),
-      };
-      addMessage(effectiveChatId, userMessage);
+      addUserMessage(effectiveChatId, text);
+      bumpChat(effectiveChatId);
 
-      // Начинаем стрим ассистента
       startStreamingMessage(effectiveChatId);
       setStreaming(effectiveChatId, true);
-      typingTitleRef.current = null; // сбрасываем перед новым стримом
+      typingTitleRef.current = null;
 
       const controller = createStreamController(effectiveChatId)
       try {
@@ -108,7 +102,7 @@ export const useChat = (chatId: string | null) => {
                 addAttachmentToStreamingMessage(effectiveChatId, event.title);
                 break;
               case "chat-title":
-                // Обновляем заголовок только один раз за стрим
+                bumpChat(effectiveChatId);
                 if (typingTitleRef.current === null) {
                   typingTitleRef.current = event.title;
                   updateChatTitle(effectiveChatId, event.title);
@@ -117,7 +111,7 @@ export const useChat = (chatId: string | null) => {
               case "error":
                 finishStreamingMessage(effectiveChatId);
                 setStreaming(effectiveChatId, false);
-                useMessageStore.getState().updateLastAssistantMessage(effectiveChatId, (msg) => ({
+                updateLastAssistantMessage(effectiveChatId, (msg) => ({
                   ...msg,
                   text: `❌ Ошибка: ${event.message}`,
                 }));
@@ -126,12 +120,22 @@ export const useChat = (chatId: string | null) => {
                 break;
             }
           },
-          controller.signal
+          controller.signal,
+          (error) => {
+            const errorMsg = error.message.includes('401')
+              ? 'Сессия истекла, обновляем страницу...'
+              : error.message;
+
+            updateLastAssistantMessage(effectiveChatId!, (msg) => ({
+              ...msg,
+              text: `❌ Ошибка: ${errorMsg}`,
+            }));
+          }
         );
       } catch (error: any) {
         if (error.name !== "AbortError") {
           console.error("Send message failed", error);
-          useMessageStore.getState().updateLastAssistantMessage(effectiveChatId, (msg) => ({
+          updateLastAssistantMessage(effectiveChatId, (msg) => ({
             ...msg,
             text: `❌ Не удалось отправить сообщение`,
           }));
@@ -145,11 +149,13 @@ export const useChat = (chatId: string | null) => {
     [
       chatId,
       isStreaming,
-      addMessage,
+      addUserMessage,
+      bumpChat,
       startStreamingMessage,
       appendTokenToStreamingMessage,
       addAttachmentToStreamingMessage,
       finishStreamingMessage,
+      updateLastAssistantMessage,
       setStreaming,
       updateChatTitle,
       addChat,

@@ -4,6 +4,7 @@ import { useChats } from "@/hooks/useChats";
 import { ChatItem } from "./chat-item";
 import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function ChatList() {
   const { chats, isLoading } = useChats();
@@ -23,13 +24,15 @@ export function ChatList() {
 
   return (
     <div className="p-2 space-y-1">
-      <button
+      <Button
+        variant="primary"
+        size="sm"
+        className="w-full justify-start gap-2 px-3 py-2"
         onClick={handleNewChat}
-        className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-gray-800 text-gray-300 transition-colors"
       >
         <Plus size={16} />
         <span>Новый чат</span>
-      </button>
+      </Button>
       {chats.map((chat) => (
         <ChatItem key={chat.id} chat={chat} />
       ))}

@@ -19,6 +19,10 @@ export const useChats = () => {
     reset,
   } = useChatStore();
 
+  const sortedChats = [...chats].sort((a, b) => {
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  });
+
   const clearMessages = useMessageStore((s) => s.clearMessages);
 
   const fetchChats = useCallback(async () => {
@@ -78,6 +82,7 @@ export const useChats = () => {
       try {
         const updated = await chatApi.renameChat(chatId, title);
         updateChatTitle(chatId, updated.title);
+        await fetchChats();
       } catch (error) {
         throw error;
       }
@@ -101,7 +106,7 @@ export const useChats = () => {
   }, [setLoading, reset, router]);
 
   return {
-    chats,
+    chats: sortedChats,
     currentChatId,
     isLoading,
     createChat,
