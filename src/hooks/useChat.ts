@@ -4,7 +4,6 @@ import { useMessageStore } from "@/store/message-store";
 import { useChatStore } from "@/store/chat-store";
 import * as chatApi from "@/lib/chat-api";
 import { StreamEvent } from "@/types/types";
-import { useStreamController } from "./useStreamController";
 
 export const useChat = (chatId: string | null) => {
   const router = useRouter();
@@ -18,7 +17,11 @@ export const useChat = (chatId: string | null) => {
     setStreaming,
     startStreamingMessage,
     appendTokenToStreamingMessage,
+    addAttachmentToStreamingMessage,
     finishStreamingMessage,
+    createStreamController,
+    abortStreamController,
+    removeStreamController,
   } = useMessageStore();
 
   const {
@@ -28,7 +31,6 @@ export const useChat = (chatId: string | null) => {
     updateChatTitle,
   } = useChatStore();
 
-  const { abort, create } = useStreamController();
   const loadingRef = useRef(false);
   const typingTitleRef = useRef<string | null>(null);
 
@@ -38,6 +40,7 @@ export const useChat = (chatId: string | null) => {
 
   const loadMessages = useCallback(async () => {
     if (!chatId || loadingRef.current) return;
+    if (isStreamingByChatId[chatId]) return;
     loadingRef.current = true;
     setLoading(chatId, true);
     try {
@@ -91,9 +94,7 @@ export const useChat = (chatId: string | null) => {
       setStreaming(effectiveChatId, true);
       typingTitleRef.current = null; // сбрасываем перед новым стримом
 
-      const controller = create();
-      if (!controller) return;
-
+      const controller = createStreamController(effectiveChatId)
       try {
         await chatApi.sendMessage(
           effectiveChatId,
@@ -104,7 +105,7 @@ export const useChat = (chatId: string | null) => {
                 appendTokenToStreamingMessage(effectiveChatId, event.token);
                 break;
               case "source":
-                useMessageStore.getState().addAttachmentToStreamingMessage(effectiveChatId, event.title);
+                addAttachmentToStreamingMessage(effectiveChatId, event.title);
                 break;
               case "chat-title":
                 // Обновляем заголовок только один раз за стрим
@@ -138,7 +139,7 @@ export const useChat = (chatId: string | null) => {
       } finally {
         finishStreamingMessage(effectiveChatId);
         setStreaming(effectiveChatId, false);
-        abort();
+        removeStreamController(effectiveChatId);
       }
     },
     [
@@ -147,15 +148,20 @@ export const useChat = (chatId: string | null) => {
       addMessage,
       startStreamingMessage,
       appendTokenToStreamingMessage,
+      addAttachmentToStreamingMessage,
       finishStreamingMessage,
       setStreaming,
       updateChatTitle,
       addChat,
       router,
-      abort,
-      create,
+      createStreamController,
+      removeStreamController,
     ]
   );
+
+  const abortStream = useCallback(() => {
+    if (chatId) abortStreamController(chatId);
+  }, [chatId, abortStreamController]);
 
   return {
     messages,
@@ -163,6 +169,6 @@ export const useChat = (chatId: string | null) => {
     isStreaming,
     sendMessage,
     reloadMessages: loadMessages,
-    abortStream: abort,
+    abortStream,
   };
 };

@@ -6,6 +6,8 @@ interface MessageState {
   isLoadingMessages: Record<string, boolean>;
   isStreamingByChatId: Record<string, boolean>;
   streamingMessageIdByChatId: Record<string, string | null>;
+  streamControllers: Record<string, AbortController>;
+
   setAllChatMessages: (messagesByChatId: Record<string, Message[]>) => void;
   setMessages: (chatId: string, messages: Message[]) => void;
   addMessage: (chatId: string, message: Message) => void;
@@ -17,6 +19,10 @@ interface MessageState {
   addAttachmentToStreamingMessage: (chatId: string, title: string) => void;
   finishStreamingMessage: (chatId: string) => void;
   updateLastAssistantMessage: (chatId: string, updater: (msg: Message) => Message) => void;
+  getStreamController: (chatId: string) => AbortController | undefined;
+  createStreamController: (chatId: string) => AbortController;
+  abortStreamController: (chatId: string) => void;
+  removeStreamController: (chatId: string) => void;
   reset: () => void;
 }
 
@@ -25,6 +31,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   isLoadingMessages: {},
   isStreamingByChatId: {},
   streamingMessageIdByChatId: {},
+  streamControllers: {},
 
   setAllChatMessages: (messagesByChatId) => set({ messagesByChatId }),
 
@@ -44,11 +51,21 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       };
     }),
 
-  clearMessages: (chatId) =>
+  clearMessages: (chatId) => {
+    get().streamControllers[chatId]?.abort();
     set((state) => {
-      const { [chatId]: _, ...rest } = state.messagesByChatId;
-      return { messagesByChatId: rest };
-    }),
+      const { [chatId]: _, ...restMessages } = state.messagesByChatId;
+      const { [chatId]: __, ...restStreaming } = state.isStreamingByChatId;
+      const { [chatId]: ___, ...restStreamingId } = state.streamingMessageIdByChatId;
+      const { [chatId]: ____, ...restControllers } = state.streamControllers;
+      return {
+        messagesByChatId: restMessages,
+        isStreamingByChatId: restStreaming,
+        streamingMessageIdByChatId: restStreamingId,
+        streamControllers: restControllers,
+      };
+    });
+  },
 
   setLoading: (chatId, isLoading) =>
     set((state) => ({
@@ -97,7 +114,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       const lastIndex = messages.length - 1;
       const lastMessage = messages[lastIndex];
       if (lastMessage.id !== messageId || lastMessage.sender_type !== 'assistant') return state;
-      
+
       const updatedMessage = {
         ...lastMessage,
         text: lastMessage.text + token,
@@ -170,11 +187,44 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       };
     }),
 
+  getStreamController: (chatId) => get().streamControllers[chatId],
+
+  createStreamController: (chatId) => {
+    console.log(`[Stream] create controller for ${chatId}`);
+    const existing = get().streamControllers[chatId];
+    if (existing) {
+      console.trace(`[Stream] aborting existing controller for ${chatId}`);
+      existing.abort();
+    }
+    const controller = new AbortController();
+    set((state) => ({
+      streamControllers: { ...state.streamControllers, [chatId]: controller },
+    }));
+    return controller;
+  },
+
+  abortStreamController: (chatId) => {
+    console.trace(`[Stream] abort called for ${chatId}`);
+    get().streamControllers[chatId]?.abort();
+    set((state) => {
+      const { [chatId]: _, ...rest } = state.streamControllers;
+      return { streamControllers: rest };
+    });
+  },
+
+  removeStreamController: (chatId) => {
+    set((state) => {
+      const { [chatId]: _, ...rest } = state.streamControllers;
+      return { streamControllers: rest };
+    });
+  },
+
   reset: () =>
     set({
       messagesByChatId: {},
       isLoadingMessages: {},
       isStreamingByChatId: {},
       streamingMessageIdByChatId: {},
+      streamControllers: {},
     }),
 }));

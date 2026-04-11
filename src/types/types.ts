@@ -58,6 +58,7 @@ export type Message = {
 
 export type StreamEvent =
   | { type: "ready" }
+  | { type: "ping" }
   | { type: "message"; token: string }
   | { type: "source"; title: string }
   | { type: "chat-title"; title: string }
