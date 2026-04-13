@@ -24,7 +24,7 @@ export const registerSchema = z
 export type RegisterFormData = z.infer<typeof registerSchema>
 
 export const RegisterForm = () => {
-  const { signup, isLoading } = useAuth()
+  const { signup, isLoggingIn } = useAuth()
   const router = useRouter()
 
   const {
@@ -89,7 +89,7 @@ export const RegisterForm = () => {
         {...register("confirmPassword")}
       />
 
-      <Button type="submit" className="w-full" isLoading={isLoading}>
+      <Button type="submit" className="w-full" isLoading={isLoggingIn}>
         Зарегистрироваться
       </Button>
     </form>

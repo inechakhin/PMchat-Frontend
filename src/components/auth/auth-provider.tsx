@@ -1,34 +1,38 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useAuthStore } from "@/store/auth-store";
-import * as userApi from "@/lib/user-api";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { setUser, setLoading, isLoading } = useAuthStore();
-  const initialized = useRef(false);
+  const { isLoading, isAuthenticated, refetch } = useAuth();
+  const router = useRouter();
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
+    if (!hasInitialized.current && !isAuthenticated) {
+      hasInitialized.current = true;
+      refetch();
+    }
+  }, [isAuthenticated, refetch]);
 
-    const initAuth = async () => {
-      if (!isLoading) {
-        setLoading(true);
-      }
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/login");
+    }
+  }, [isLoading, isAuthenticated, router]);
 
-      try {
-        const userData = await userApi.getProfile();
-        setUser(userData);
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-lg">Загрузка...</div>
+      </div>
+    );
+  }
 
-    initAuth();
-  }, [setUser, setLoading, isLoading]);
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return <>{children}</>;
 }

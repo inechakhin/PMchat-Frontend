@@ -6,7 +6,11 @@ import * as chatApi from '@/lib/chat-api';
 import { UpdateProfileRequest } from '@/types/types';
 
 export const useUser = () => {
-  const { user, setUser, reset } = useAuthStore();
+  const { 
+    user, 
+    setUser, 
+    reset 
+  } = useAuthStore();
   const resetChats = useChatStore((s) => s.reset);
   const resetMessages = useMessageStore((s) => s.reset);
 

@@ -14,10 +14,29 @@ interface MessageListProps {
 export function MessageList({ messages, isLoading, isStreaming }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const isFirstRender = useRef(true);
+  const prevMessagesLength = useRef(0);
+
+  const isNearBottom = () => {
+    const el = containerRef.current;
+    if (!el) return false;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+  };
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isStreaming]);
+    if (!bottomRef.current) return;
+
+    const isNewMessage = messages.length > prevMessagesLength.current;
+
+    if (isFirstRender.current) {
+      bottomRef.current.scrollIntoView({ behavior: "auto" });
+      isFirstRender.current = false;
+    } else if (isNewMessage || (isStreaming && isNearBottom())) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+
+    prevMessagesLength.current = messages.length;
+  }, [messages]);
 
   if (isLoading) {
     return (

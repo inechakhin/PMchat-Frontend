@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChatStore } from '@/store/chat-store';
 import { useMessageStore } from '@/store/message-store';
@@ -19,11 +19,14 @@ export const useChats = () => {
     reset,
   } = useChatStore();
 
-  const sortedChats = [...chats].sort((a, b) => {
-    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-  });
-
   const clearMessages = useMessageStore((s) => s.clearMessages);
+  const resetMessages = useMessageStore((s) => s.reset);
+
+  const sortedChats = useMemo(() => {
+    return [...chats].sort((a, b) => {
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+  }, [chats]);
 
   const fetchChats = useCallback(async () => {
     setLoading(true);
@@ -87,7 +90,7 @@ export const useChats = () => {
         throw error;
       }
     },
-    [updateChatTitle]
+    [updateChatTitle, fetchChats]
   );
 
   const deleteAllChats = useCallback(async () => {
@@ -95,7 +98,7 @@ export const useChats = () => {
     try {
       await chatApi.deleteAllChats();
       reset();
-      useMessageStore.getState().reset();
+      resetMessages();
       router.push('/');
     } catch (error) {
       setLoading(false);
@@ -103,7 +106,7 @@ export const useChats = () => {
     } finally {
       setLoading(false);
     }
-  }, [setLoading, reset, router]);
+  }, [setLoading, reset, resetMessages, router]);
 
   return {
     chats: sortedChats,

@@ -28,13 +28,13 @@ apiClient.interceptors.response.use(
     if (status === 401) {
       if (originalRequest?._retry) {
         await logout()
-        window.location.href = "/api/auth/signin"
+        window.location.href = "/login"
         return Promise.reject(error)
       }
 
       if (originalRequest?.url?.includes("/api/auth/refresh")) {
         await logout()
-        window.location.href = "/api/auth/signin"
+        window.location.href = "/login"
         return Promise.reject(error)
       }
 
@@ -45,7 +45,7 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest)
       } catch (refreshError) {
         await logout()
-        window.location.href = "/api/auth/signin"
+        window.location.href = "/login"
         return Promise.reject(refreshError)
       }
     }
@@ -65,5 +65,5 @@ apiClient.interceptors.response.use(
 export async function logout() {
   try {
     await apiClient.post("/api/auth/logout")
-  } catch {}
+  } catch { }
 }

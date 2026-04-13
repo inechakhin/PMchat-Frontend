@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { ChatPreview } from "@/types/types";
 import { useRouter, usePathname } from "next/navigation";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -17,7 +18,7 @@ interface ChatItemProps {
   chat: ChatPreview;
 }
 
-export function ChatItem({ chat }: ChatItemProps) {
+export const ChatItem = React.memo(function ChatItem({ chat }: ChatItemProps) {
   const router = useRouter();
   const pathname = usePathname();
   const isActive = pathname === `/chat/${chat.id}`;
@@ -90,4 +91,4 @@ export function ChatItem({ chat }: ChatItemProps) {
       />
     </>
   );
-}
+});

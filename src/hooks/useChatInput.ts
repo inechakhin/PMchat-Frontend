@@ -1,5 +1,5 @@
-import { useInputStore } from '@/store/input-store';
 import { useCallback } from 'react';
+import { useInputStore } from '@/store/input-store';
 
 export const useChatInput = (chatId: string) => {
   const { drafts, setDraft, clearDraft} = useInputStore();

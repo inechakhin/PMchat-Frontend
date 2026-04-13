@@ -6,7 +6,15 @@ import * as authApi from '@/lib/auth-api';
 import * as userApi from '@/lib/user-api';
 
 export const useAuth = () => {
-  const { user, isLoading, setUser, setLoading, reset } = useAuthStore();
+  const { 
+    user,
+    isLoading,
+    isLoggingIn,
+    setUser,
+    setLoading,
+    setLoggingIn,
+    reset 
+  } = useAuthStore();
   const resetChats = useChatStore((s) => s.reset);
   const resetMessages = useMessageStore((s) => s.reset);
 
@@ -26,17 +34,17 @@ export const useAuth = () => {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      setLoading(true);
+      setLoggingIn(true);
       try {
         await authApi.signin({ email, password });
         await fetchUser();
       } catch (error) {
         setUser(null);
-        setLoading(false);
+        setLoggingIn(false);
         throw error;
       }
     },
-    [setUser, setLoading, fetchUser]
+    [setUser, setLoggingIn, fetchUser]
   );
 
   const logout = useCallback(async () => {
@@ -75,6 +83,7 @@ export const useAuth = () => {
   return {
     user,
     isLoading,
+    isLoggingIn,
     isAuthenticated,
     login,
     logout,

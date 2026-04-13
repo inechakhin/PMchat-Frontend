@@ -41,8 +41,7 @@ export const useChat = (chatId: string | null) => {
   const isStreaming = chatId ? isStreamingByChatId[chatId] || false : false;
 
   const loadMessages = useCallback(async () => {
-    if (!chatId || loadingRef.current) return;
-    if (isStreamingByChatId[chatId]) return;
+    if (!chatId || loadingRef.current || isStreamingByChatId[chatId]) return;
     loadingRef.current = true;
     setLoading(chatId, true);
     try {
@@ -88,7 +87,7 @@ export const useChat = (chatId: string | null) => {
       setStreaming(effectiveChatId, true);
       typingTitleRef.current = null;
 
-      const controller = createStreamController(effectiveChatId)
+      const controller = createStreamController(effectiveChatId);
       try {
         await chatApi.sendMessage(
           effectiveChatId,

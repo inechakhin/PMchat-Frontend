@@ -16,7 +16,7 @@ export const loginSchema = z.object({
 export type LoginFormData = z.infer<typeof loginSchema>
 
 export const LoginForm = () => {
-  const { login, isLoading } = useAuth()
+  const { login, isLoggingIn } = useAuth()
   const router = useRouter()
 
   const {
@@ -54,7 +54,7 @@ export const LoginForm = () => {
         {...register("password")}
       />
 
-      <Button type="submit" className="w-full" isLoading={isLoading}>
+      <Button type="submit" className="w-full" isLoading={isLoggingIn}>
         Войти
       </Button>
     </form>

@@ -37,20 +37,22 @@ export function ChatInput({ chatId, onSendMessage, isStreaming }: ChatInputProps
   };
 
   const handleSubmit = async () => {
-  if (!text.trim() || isStreaming) return;
+    if (!text.trim() || isStreaming) return;
 
-  const messageText = text;
-  clear();
-  if (textareaRef.current) {
-    textareaRef.current.style.height = "auto";
-  }
+    const messageText = text;
+    clear();
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.blur();
+    }
 
-  try {
-    await onSendMessage(messageText);
-  } catch (error) {
-    setText(messageText);
-  }
-};
+    try {
+      await onSendMessage(messageText);
+    } catch (error) {
+      setText(messageText);
+      textareaRef.current?.focus();
+    }
+  };
 
   return (
     <div className="border-t border-gray-800 bg-gray-900/50 p-3">
@@ -64,7 +66,6 @@ export function ChatInput({ chatId, onSendMessage, isStreaming }: ChatInputProps
           className="w-full resize-none bg-gray-800 rounded-xl pl-4 pr-12 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
           rows={1}
           style={{ minHeight: "45px", maxHeight: "200px" }}
-          disabled={isStreaming}
         />
         <Button
           type="button"
