@@ -5,11 +5,14 @@ import { MessageList } from "./message-list";
 import { ChatInput } from "./chat-input";
 
 interface ChatAreaProps {
-  chatId: string;
+  chatId?: string;
 }
 
 export function ChatArea({ chatId }: ChatAreaProps) {
-  const { messages, isLoading, isStreaming, sendMessage } = useChat(chatId);
+  const hookChatId = chatId ?? null;
+  const { messages, isLoading, isStreaming, sendMessage } = useChat(hookChatId);
+  
+  const inputChatId = chatId ?? "new";
 
   return (
     <div className="flex-1 flex flex-col h-full">
@@ -19,7 +22,7 @@ export function ChatArea({ chatId }: ChatAreaProps) {
         isStreaming={isStreaming}
       />
       <ChatInput
-        chatId={chatId}
+        chatId={inputChatId}
         onSendMessage={sendMessage}
         isStreaming={isStreaming}
       />
