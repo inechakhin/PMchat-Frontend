@@ -63,12 +63,7 @@ export const useChats = () => {
         removeChat(chatId);
         clearMessages(chatId);
         if (currentChatId === chatId) {
-          const remaining = chats.filter((c) => c.id !== chatId);
-          if (remaining.length > 0) {
-            router.push(`/chat/${remaining[0].id}`);
-          } else {
-            router.push('/');
-          }
+          router.push('/');
         }
       } catch (error) {
         setLoading(false);

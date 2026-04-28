@@ -5,6 +5,8 @@ import { useChatStore } from "@/store/chat-store";
 import * as chatApi from "@/lib/chat-api";
 import { StreamEvent } from "@/types/types";
 
+const BATCH_INTERVAL_MS = 50;
+
 export const useChat = (chatId: string | null) => {
   const router = useRouter();
   const {
@@ -16,7 +18,7 @@ export const useChat = (chatId: string | null) => {
     setLoading,
     setStreaming,
     startStreamingMessage,
-    appendTokenToStreamingMessage,
+    appendTokensToStreamingMessage,
     addAttachmentToStreamingMessage,
     finishStreamingMessage,
     updateLastAssistantMessage,
@@ -40,6 +42,23 @@ export const useChat = (chatId: string | null) => {
   const isLoading = chatId ? isLoadingMessages[chatId] || false : false;
   const isStreaming = chatId ? isStreamingByChatId[chatId] || false : false;
 
+  const tokenBufferRef = useRef<string[]>([]);
+  const batchIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const flushTokenBuffer = useCallback((targetChatId: string) => {
+    const tokens = tokenBufferRef.current;
+    if (tokens.length === 0) return;
+    appendTokensToStreamingMessage(targetChatId, tokens);
+    tokenBufferRef.current = [];
+  }, [appendTokensToStreamingMessage]);
+
+  const clearBatchInterval = useCallback(() => {
+    if (batchIntervalRef.current) {
+      clearInterval(batchIntervalRef.current);
+      batchIntervalRef.current = null;
+    }
+  }, []);
+
   const loadMessages = useCallback(async () => {
     if (!chatId || loadingRef.current || isStreamingByChatId[chatId]) return;
     loadingRef.current = true;
@@ -48,7 +67,7 @@ export const useChat = (chatId: string | null) => {
       const msgs = await chatApi.getMessages(chatId);
       setMessages(chatId, msgs);
     } catch (error) {
-      console.error("Failed to load messages", error);
+      console.error("Failed to load messages for chat", chatId, error);
     } finally {
       setLoading(chatId, false);
       loadingRef.current = false;
@@ -86,6 +105,12 @@ export const useChat = (chatId: string | null) => {
       startStreamingMessage(effectiveChatId);
       setStreaming(effectiveChatId, true);
       typingTitleRef.current = null;
+      tokenBufferRef.current = [];
+
+      clearBatchInterval();
+      batchIntervalRef.current = setInterval(() => {
+        flushTokenBuffer(effectiveChatId);
+      }, BATCH_INTERVAL_MS);
 
       const controller = createStreamController(effectiveChatId);
       try {
@@ -95,7 +120,7 @@ export const useChat = (chatId: string | null) => {
           (event: StreamEvent) => {
             switch (event.type) {
               case "message":
-                appendTokenToStreamingMessage(effectiveChatId, event.token);
+                tokenBufferRef.current.push(event.token);
                 break;
               case "source":
                 addAttachmentToStreamingMessage(effectiveChatId, event.title);
@@ -108,6 +133,7 @@ export const useChat = (chatId: string | null) => {
                 }
                 break;
               case "error":
+                flushTokenBuffer(effectiveChatId);
                 finishStreamingMessage(effectiveChatId);
                 setStreaming(effectiveChatId, false);
                 updateLastAssistantMessage(effectiveChatId, (msg) => ({
@@ -140,6 +166,8 @@ export const useChat = (chatId: string | null) => {
           }));
         }
       } finally {
+        flushTokenBuffer(effectiveChatId);
+        clearBatchInterval();
         finishStreamingMessage(effectiveChatId);
         setStreaming(effectiveChatId, false);
         removeStreamController(effectiveChatId);
@@ -151,7 +179,7 @@ export const useChat = (chatId: string | null) => {
       addUserMessage,
       bumpChat,
       startStreamingMessage,
-      appendTokenToStreamingMessage,
+      appendTokensToStreamingMessage,
       addAttachmentToStreamingMessage,
       finishStreamingMessage,
       updateLastAssistantMessage,
@@ -161,12 +189,18 @@ export const useChat = (chatId: string | null) => {
       router,
       createStreamController,
       removeStreamController,
+      flushTokenBuffer,
+      clearBatchInterval,
     ]
   );
 
   const abortStream = useCallback(() => {
-    if (chatId) abortStreamController(chatId);
-  }, [chatId, abortStreamController]);
+    if (chatId) {
+      flushTokenBuffer(chatId);
+      clearBatchInterval();
+      abortStreamController(chatId);
+    }
+  }, [chatId, abortStreamController, flushTokenBuffer, clearBatchInterval]);
 
   return {
     messages,

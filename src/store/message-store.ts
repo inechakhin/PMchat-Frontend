@@ -15,7 +15,7 @@ interface MessageState {
   setLoading: (chatId: string, isLoading: boolean) => void;
   setStreaming: (chatId: string, isStreaming: boolean) => void;
   startStreamingMessage: (chatId: string) => void;
-  appendTokenToStreamingMessage: (chatId: string, token: string) => void;
+  appendTokensToStreamingMessage: (chatId: string, tokens: string[]) => void;
   addAttachmentToStreamingMessage: (chatId: string, title: string) => void;
   finishStreamingMessage: (chatId: string) => void;
   updateLastAssistantMessage: (chatId: string, updater: (msg: Message) => Message) => void;
@@ -86,7 +86,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       },
     })),
 
-  startStreamingMessage: (chatId) => 
+  startStreamingMessage: (chatId) =>
     set((state) => {
       if (state.streamingMessageIdByChatId[chatId]) return state;
       const messageId = crypto.randomUUID();
@@ -109,7 +109,9 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       };
     }),
 
-  appendTokenToStreamingMessage: (chatId, token) => {
+  appendTokensToStreamingMessage: (chatId, tokens) => {
+    if (!tokens.length) return;
+
     set((state) => {
       const messageId = state.streamingMessageIdByChatId[chatId];
       if (!messageId) return state;
@@ -117,12 +119,12 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       const messages = state.messagesByChatId[chatId] || [];
       const lastIndex = messages.length - 1;
       const lastMessage = messages[lastIndex];
-      if (lastMessage.id !== messageId || lastMessage.sender_type !== 'assistant') return state;
+      if (lastMessage?.id !== messageId || lastMessage.sender_type !== 'assistant') return state;
 
       const updatedMessage = {
         ...lastMessage,
-        text: lastMessage.text + token,
-      }
+        text: lastMessage.text + tokens.join(''),
+      };
 
       const updatedMessages = [...messages];
       updatedMessages[lastIndex] = updatedMessage;
