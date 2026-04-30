@@ -11,8 +11,8 @@ export async function getChats(): Promise<ChatPreview[]> {
   return res.data
 }
 
-export async function createChat(): Promise<Chat> {
-  const res = await apiClient.post("/api/chats/create")
+export async function createChat(type: string): Promise<Chat> {
+  const res = await apiClient.post("/api/chats/create", { type })
   return res.data
 }
 

@@ -2,16 +2,27 @@
 
 import { useEffect, useRef } from "react";
 import { Message } from "@/types/types";
+import { ChatTypeSelector } from "./chat-type-selector";
 import { MessageBubble } from "./message-bubble";
 import { Loader2 } from "lucide-react";
 
 interface MessageListProps {
+  chatId: string;
   messages: Message[];
   isLoading?: boolean;
   isStreaming?: boolean;
+  chatType: "communication" | "generation";
+  onChatTypeChange: (type: "communication" | "generation") => void;
 }
 
-export function MessageList({ messages, isLoading, isStreaming }: MessageListProps) {
+export function MessageList({
+  chatId,
+  messages, 
+  isLoading, 
+  isStreaming, 
+  chatType, 
+  onChatTypeChange 
+}: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
@@ -49,11 +60,17 @@ export function MessageList({ messages, isLoading, isStreaming }: MessageListPro
   if (messages.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8">
-        <h2 className="text-xl font-semibold text-gray-300 mb-2">
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
           Начните общение
         </h2>
-        <p className="text-gray-500 text-center">
-          Задайте вопрос или опишите задачу, и я постараюсь помочь
+        <ChatTypeSelector 
+          currentType={chatType} 
+          onTypeChange={onChatTypeChange} 
+        />
+        <p className="text-gray-500 text-center max-w-sm">
+          {chatType === "communication" 
+            ? "Задайте вопрос по существующей документации" 
+            : "Опишите задачу для генерации нового документа"}
         </p>
       </div>
     );
@@ -70,6 +87,7 @@ export function MessageList({ messages, isLoading, isStreaming }: MessageListPro
             index === messages.length - 1 &&
             msg.sender_type === "assistant"
           }
+          chatId={chatId}
         />
       ))}
       <div ref={bottomRef} />

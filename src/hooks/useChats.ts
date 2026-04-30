@@ -40,20 +40,23 @@ export const useChats = () => {
     }
   }, [setChats, setLoading]);
 
-  const createChat = useCallback(async () => {
-    setLoading(true);
-    try {
-      const newChat = await chatApi.createChat();
-      addChat(newChat);
-      router.push(`/chat/${newChat.id}`);
-      return newChat;
-    } catch (error) {
-      setLoading(false);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [setLoading, addChat, router]);
+  const createChat = useCallback(
+    async (type: string) => {
+      setLoading(true);
+      try {
+        const newChat = await chatApi.createChat(type);
+        addChat(newChat);
+        router.push(`/chat/${newChat.id}`);
+        return newChat;
+      } catch (error) {
+        setLoading(false);
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setLoading, addChat, router]
+  );
 
   const deleteChat = useCallback(
     async (chatId: string) => {

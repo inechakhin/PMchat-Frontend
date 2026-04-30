@@ -7,7 +7,7 @@ import { Send, Loader2 } from "lucide-react";
 
 interface ChatInputProps {
   chatId: string;
-  onSendMessage: (text: string) => Promise<void>;
+  onSendMessage: (text: string) => void;
   isStreaming?: boolean;
 }
 

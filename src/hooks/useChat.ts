@@ -20,6 +20,7 @@ export const useChat = (chatId: string | null) => {
     startStreamingMessage,
     appendTokensToStreamingMessage,
     addAttachmentToStreamingMessage,
+    addSourceToStreamingMessage,
     finishStreamingMessage,
     updateLastAssistantMessage,
     createStreamController,
@@ -83,13 +84,13 @@ export const useChat = (chatId: string | null) => {
   }, [chatId, currentChatId, setCurrentChat]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, chatType?: string) => {
       if (!text.trim() || isStreaming) return;
 
       let effectiveChatId = chatId;
       if (!effectiveChatId) {
         try {
-          const newChat = await chatApi.createChat();
+          const newChat = await chatApi.createChat(chatType || "communication");
           addChat(newChat);
           effectiveChatId = newChat.id;
           router.replace(`/chat/${effectiveChatId}`);
@@ -122,8 +123,19 @@ export const useChat = (chatId: string | null) => {
               case "message":
                 tokenBufferRef.current.push(event.token);
                 break;
+              case "attachment":
+                addAttachmentToStreamingMessage(effectiveChatId, {
+                  id: event.id,
+                  title: event.title,
+                  size: event.size,
+                  content_type: event.content_type
+                });
+                break;
               case "source":
-                addAttachmentToStreamingMessage(effectiveChatId, event.title);
+                addSourceToStreamingMessage(effectiveChatId, {
+                  id: event.id,
+                  title: event.title,
+                });
                 break;
               case "chat-title":
                 bumpChat(effectiveChatId);
@@ -181,6 +193,7 @@ export const useChat = (chatId: string | null) => {
       startStreamingMessage,
       appendTokensToStreamingMessage,
       addAttachmentToStreamingMessage,
+      addSourceToStreamingMessage,
       finishStreamingMessage,
       updateLastAssistantMessage,
       setStreaming,
@@ -203,6 +216,7 @@ export const useChat = (chatId: string | null) => {
   }, [chatId, abortStreamController, flushTokenBuffer, clearBatchInterval]);
 
   return {
+    currentChatId,
     messages,
     isLoading,
     isStreaming,

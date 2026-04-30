@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Message } from '@/types/types';
+import { Message, Attachment, Source } from '@/types/types';
 
 interface MessageState {
   messagesByChatId: Record<string, Message[]>;
@@ -16,7 +16,8 @@ interface MessageState {
   setStreaming: (chatId: string, isStreaming: boolean) => void;
   startStreamingMessage: (chatId: string) => void;
   appendTokensToStreamingMessage: (chatId: string, tokens: string[]) => void;
-  addAttachmentToStreamingMessage: (chatId: string, title: string) => void;
+  addAttachmentToStreamingMessage: (chatId: string, attachment: Attachment) => void;
+  addSourceToStreamingMessage: (chatId: string, source: Source) => void;
   finishStreamingMessage: (chatId: string) => void;
   updateLastAssistantMessage: (chatId: string, updater: (msg: Message) => Message) => void;
   getStreamController: (chatId: string) => AbortController | undefined;
@@ -47,6 +48,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         sender_type: 'user' as const,
         text: text,
         attachments: [],
+        sources: [],
         created_at: new Date().toISOString(),
       };
       return {
@@ -95,6 +97,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         sender_type: 'assistant' as const,
         text: '',
         attachments: [],
+        sources: [],
         created_at: new Date().toISOString(),
       };
       return {
@@ -138,7 +141,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     });
   },
 
-  addAttachmentToStreamingMessage: (chatId, title) => {
+  addAttachmentToStreamingMessage: (chatId, attachment) => {
     set((state) => {
       const messageId = state.streamingMessageIdByChatId[chatId];
       if (!messageId) return state;
@@ -146,25 +149,35 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       const messages = state.messagesByChatId[chatId] || [];
       const lastIndex = messages.length - 1;
       const lastMessage = messages[lastIndex];
-      if (lastMessage.id !== messageId || lastMessage.sender_type !== 'assistant') return state;
-
-      const existingTitles = new Set(lastMessage.attachments.map((a) => a.title));
-      if (existingTitles.has(title)) return state;
-
-      const updatedMessage = {
-        ...lastMessage,
-        attachments: [...lastMessage.attachments, { title }],
-      };
+      if (!lastMessage || lastMessage.id !== messageId) return state;
 
       const updatedMessages = [...messages];
-      updatedMessages[lastIndex] = updatedMessage;
-
-      return {
-        messagesByChatId: {
-          ...state.messagesByChatId,
-          [chatId]: updatedMessages,
-        },
+      updatedMessages[lastIndex] = {
+        ...lastMessage,
+        attachments: [...lastMessage.attachments, attachment],
       };
+
+      return { messagesByChatId: { ...state.messagesByChatId, [chatId]: updatedMessages } };
+    });
+  },
+
+  addSourceToStreamingMessage: (chatId, source) => {
+    set((state) => {
+      const messageId = state.streamingMessageIdByChatId[chatId];
+      if (!messageId) return state;
+
+      const messages = state.messagesByChatId[chatId] || [];
+      const lastIndex = messages.length - 1;
+      const lastMessage = messages[lastIndex];
+      if (!lastMessage || lastMessage.id !== messageId) return state;
+
+      const updatedMessages = [...messages];
+      updatedMessages[lastIndex] = {
+        ...lastMessage,
+        sources: [...lastMessage.sources, source],
+      };
+
+      return { messagesByChatId: { ...state.messagesByChatId, [chatId]: updatedMessages } };
     });
   },
 
