@@ -2,12 +2,17 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/auth-store";
 import { useAuth } from "@/hooks/useAuth";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { isLoading, isAuthenticated, refetch } = useAuth();
+  const { refetch } = useAuth();
   const router = useRouter();
   const hasInitialized = useRef(false);
+
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = !!user;
 
   useEffect(() => {
     if (!hasInitialized.current && !isAuthenticated) {

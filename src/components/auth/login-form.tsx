@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useAuthStore } from "@/store/auth-store"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { FormField } from "@/components/ui/form-field"
@@ -16,8 +17,11 @@ export const loginSchema = z.object({
 export type LoginFormData = z.infer<typeof loginSchema>
 
 export const LoginForm = () => {
-  const { login, isLoggingIn } = useAuth()
-  const router = useRouter()
+  const router = useRouter();
+
+  const { login } = useAuth();
+
+  const isLoggingIn = useAuthStore((s) => s.isLoggingIn);
 
   const {
     register,

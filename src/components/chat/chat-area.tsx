@@ -11,9 +11,8 @@ interface ChatAreaProps {
 }
 
 export function ChatArea({ chatId }: ChatAreaProps) {
-  const hookChatId = chatId ?? null;
   const [chatType, setChatType] = useState<"communication" | "generation">("communication");
-  const { messages, isLoading, isStreaming, sendMessage } = useChat(hookChatId);
+  const { sendMessage } = useChat(chatId ?? null);
   
   const handleSendMessage = (text: string) => {
     sendMessage(text, chatType);
@@ -24,16 +23,12 @@ export function ChatArea({ chatId }: ChatAreaProps) {
       <ChatHeader chatId={chatId} />
       <MessageList
         chatId={chatId ?? "new"}
-        messages={messages}
-        isLoading={isLoading}
-        isStreaming={isStreaming}
         chatType={chatType}
         onChatTypeChange={setChatType}
       />
       <ChatInput
         chatId={chatId ?? "new"}
         onSendMessage={handleSendMessage}
-        isStreaming={isStreaming}
       />
     </div>
   );

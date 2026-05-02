@@ -1,5 +1,7 @@
 "use client";
 
+import { useMessageStore } from "@/store/message-store";
+import { useInputStore } from "@/store/input-store";
 import { useChatInput } from "@/hooks/useChatInput";
 import { useRef, useEffect, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,11 +10,16 @@ import { Send, Loader2 } from "lucide-react";
 interface ChatInputProps {
   chatId: string;
   onSendMessage: (text: string) => void;
-  isStreaming?: boolean;
 }
 
-export function ChatInput({ chatId, onSendMessage, isStreaming }: ChatInputProps) {
-  const { text, setText, clear } = useChatInput(chatId);
+export function ChatInput({ chatId, onSendMessage }: ChatInputProps) {
+  const isStreaming = useMessageStore(
+    (state) => (chatId ? state.isStreamingByChatId[chatId] : false)
+  );
+  
+  const text = useInputStore((state) => state.drafts[chatId] || '');
+  const { setText, clear } = useChatInput(chatId);
+  
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const adjustHeight = () => {

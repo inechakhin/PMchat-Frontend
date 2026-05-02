@@ -1,26 +1,28 @@
 "use client";
 
-import { ChatPreview } from "@/types/types";
+import { useChatStore } from "@/store/chat-store";
 import { useRouter, usePathname } from "next/navigation";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { RenameChatDialog } from "./dialogs/rename-chat-dialog";
 import { DeleteChatDialog } from "./dialogs/delete-chat-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 
 interface ChatItemProps {
-  chat: ChatPreview;
+  chatId: string;
 }
 
-export function ChatItem({ chat }: ChatItemProps) {
+export function ChatItem({ chatId }: ChatItemProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const isActive = pathname === `/chat/${chat.id}`;
+  const isActive = pathname === `/chat/${chatId}`;
+
+  const chat = useChatStore((state) =>
+    state.chats.find((c) => c.id === chatId)
+  );
+  if (!chat) return null;
+
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -47,7 +49,7 @@ export function ChatItem({ chat }: ChatItemProps) {
               className="h-6 w-6"
               onClick={(e) => e.stopPropagation()}
             >
-               <MoreHorizontal size={14} />
+              <MoreHorizontal size={14} />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-38 p-1" align="end">

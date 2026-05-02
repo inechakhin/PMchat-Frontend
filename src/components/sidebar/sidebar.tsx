@@ -6,10 +6,10 @@ import { UserProfile } from "./user-profile";
 import { useChats } from "@/hooks/useChats";
 
 export function Sidebar() {
-  const { refetch } = useChats();
+  const { fetchChats } = useChats();
 
   useEffect(() => {
-    refetch();
+    fetchChats();
   }, []);
 
   return (

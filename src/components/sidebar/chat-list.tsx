@@ -1,14 +1,25 @@
 "use client";
 
-import { useChats } from "@/hooks/useChats";
+import { useChatStore } from "@/store/chat-store";
+import { useShallow } from 'zustand/react/shallow';
 import { ChatItem } from "./chat-item";
 import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 export function ChatList() {
-  const { chats, isLoading } = useChats();
   const router = useRouter();
+
+  const chatIds = useChatStore(
+    useShallow((state) => 
+      state.chats
+        .slice()
+        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        .map(c => c.id)
+    )
+  );
+  
+  const isLoading = useChatStore((s) => s.isLoading);
 
   const handleNewChat = () => {
     router.push("/");
@@ -33,8 +44,8 @@ export function ChatList() {
         <Plus size={16} />
         <span>Новый чат</span>
       </Button>
-      {chats.map((chat) => (
-        <ChatItem key={chat.id} chat={chat} />
+      {chatIds.map((id) => (
+        <ChatItem key={id} chatId={id} />
       ))}
     </div>
   );

@@ -1,13 +1,14 @@
 "use client";
 
-import { useUser } from "@/hooks/useUser";
+import { useAuthStore } from "@/store/auth-store";
+import { useShallow } from "zustand/react/shallow";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChevronRight } from "lucide-react";
 
 export function UserProfile() {
-  const { user } = useUser();
+  const user = useAuthStore(useShallow((s) => s.user));
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   if (!user) return null;

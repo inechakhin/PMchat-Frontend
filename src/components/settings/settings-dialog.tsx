@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuthStore } from "@/store/auth-store";
+import { useShallow } from "zustand/react/shallow";
 import { useState } from "react";
 import {
   Dialog,
@@ -11,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { EditProfileDialog } from "./dialogs/edit-profile-dialog";
 import { DeleteAllChatsDialog } from "./dialogs/delete-all-chats-dialog";
 import { DeleteAccountDialog } from "./dialogs/delete-account-dialog";
-import { useUser } from "@/hooks/useUser";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -19,7 +20,7 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const { user } = useUser();
+  const user = useAuthStore(useShallow((s) => s.user));
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [deleteChatsOpen, setDeleteChatsOpen] = useState(false);
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);

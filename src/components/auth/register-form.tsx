@@ -1,12 +1,13 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useAuth } from "@/hooks/useAuth"
-import { Button } from "@/components/ui/button"
-import { FormField } from "@/components/ui/form-field"
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuthStore } from "@/store/auth-store";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/ui/form-field";
 
 export const registerSchema = z
   .object({
@@ -24,8 +25,11 @@ export const registerSchema = z
 export type RegisterFormData = z.infer<typeof registerSchema>
 
 export const RegisterForm = () => {
-  const { signup, isLoggingIn } = useAuth()
-  const router = useRouter()
+  const router = useRouter();
+  
+  const { signup } = useAuth();
+  
+  const isLoggingIn = useAuthStore((s) => s.isLoggingIn);
 
   const {
     register,
