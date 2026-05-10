@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer components {
+
+  /* Chat markdown tuning */
+  .prose {
+    font-size: 14px;
+    line-height: 1.6;
+
+    color: hsl(var(--foreground));
+  }
+
+  .prose p,
+  .prose li,
+  .prose span {
+    color: hsl(var(--foreground));
+  }
+
+  .prose blockquote {
+    border-left-width: 4px;
+    padding-left: 0.75rem;
+  }
+
+  /* Убираем лишние кавычки вокруг цитаты >*/
+  .prose blockquote p {
+    quotes: none;
+  }
+
+  .prose strong {
+    color: hsl(var(--foreground));
+    font-weight: 600;
+  }
+
+  /* Заголовки */
+  .prose h1 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+    color: hsl(var(--foreground));
+  }
+
+  .prose h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1rem 0 0.5rem;
+  }
+
+  .prose h3 {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* Списки */
+  .prose ul {
+    padding-left: 1.25rem;
+    margin: 0.25rem 0;
+  }
+
+  .prose li {
+    margin: 0.15rem 0;
+  }
+
+  .prose ul {
+    list-style-type: disc;
+  }
+
+  .prose ul>li::marker {
+    color: hsl(0, 0%, 1%);
+  }
+
+  /* Разделитель */
+  .prose hr {
+    margin: 1rem 0;
+    border-color: hsl(var(--border));
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 2px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: 999px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.28);
+  }
+}
